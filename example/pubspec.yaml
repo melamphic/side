@@ -1,0 +1,25 @@
+name: example
+description: A sample application demonstrating side.
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: ^3.9.0
+  flutter: ^3.35.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^9.1.1
+  hydrated_bloc: ^10.1.1
+  side:
+    path: ../
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_lints: ^3.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

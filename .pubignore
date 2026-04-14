@@ -1,0 +1,16 @@
+# Build artifacts
+.dart_tool/
+build/
+.pub-cache/
+
+# Media files (demo assets, not needed in package)
+*.webm
+*.mp4
+*.gif
+
+# IDE and OS files
+.idea/
+*.iml
+.vscode/
+.DS_Store
+doc/

@@ -1,0 +1,40 @@
+name: Build and Deploy Example Web App
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install dependencies (Root)
+        run: flutter pub get
+
+      - name: Install dependencies (Example)
+        run: |
+          cd example
+          flutter pub get
+
+      - name: Build Web (Example)
+        run: |
+          cd example
+          flutter build web --base-href /side/ --no-tree-shake-icons
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: example/build/web
+          branch: gh-pages # The branch the action should deploy to.

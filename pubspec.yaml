@@ -1,0 +1,25 @@
+name: side
+description: A high-performance, VS Code-like workspace shell widget for Flutter applications, featuring split editors, tab management, and a customizable sidebar.
+version: 0.1.2
+repository: https://github.com/off-by-2/side
+homepage: https://github.com/off-by-2/side
+
+environment:
+  sdk: ^3.9.0
+  flutter: ">=3.35.0"
+
+dependencies:
+  equatable: ^2.0.8
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^9.1.1
+  hydrated_bloc: ^10.1.1
+  path_provider: ^2.1.5
+  uuid: ^4.5.2
+
+dev_dependencies:
+  bloc_test: ^10.0.0
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.4
+  very_good_analysis: ^10.0.0
