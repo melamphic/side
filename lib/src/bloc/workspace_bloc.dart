@@ -92,7 +92,9 @@ class WorkspaceBloc extends HydratedBloc<WorkspaceEvent, WorkspaceState> {
       final paneIndex = state.getPaneForTab(existingTab.id) ?? 0;
 
       // Update per-pane active tab
-      final updatedActiveTabByPane = Map<int, String>.from(state.activeTabByPane);
+      final updatedActiveTabByPane = Map<int, String>.from(
+        state.activeTabByPane,
+      );
       updatedActiveTabByPane[paneIndex] = existingTab.id;
 
       emit(
@@ -341,7 +343,7 @@ class WorkspaceBloc extends HydratedBloc<WorkspaceEvent, WorkspaceState> {
 
     // Rebuild tabsByPane without the closing pane
     final updatedTabsByPane = <int, List<String>>{};
-    final List<List<String>> tempPanes = [];
+    final tempPanes = <List<String>>[];
 
     for (final entry in state.tabsByPane.entries) {
       if (entry.key != event.paneIndex) {
@@ -389,7 +391,8 @@ class WorkspaceBloc extends HydratedBloc<WorkspaceEvent, WorkspaceState> {
     var newActiveTabId = state.activeTabId;
     if (event.paneIndex == state.activePaneIndex ||
         closingPaneTabs.contains(state.activeTabId)) {
-      newActiveTabId = updatedActiveTabByPane[newActivePaneIndex] ??
+      newActiveTabId =
+          updatedActiveTabByPane[newActivePaneIndex] ??
           (updatedTabsByPane[newActivePaneIndex]?.isNotEmpty ?? false
               ? updatedTabsByPane[newActivePaneIndex]!.first
               : null);

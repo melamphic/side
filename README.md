@@ -2,10 +2,10 @@
 
 A high-performance, VS Code-like workspace shell widget for Flutter applications.
 
-[**Live Demo**](https://off-by-2.github.io/side/)
+[**Live Demo**](https://melamphic.github.io/side/)
 
 
-![Side Demo](https://github.com/off-by-2/side/raw/main/side.gif)
+![Side Demo](https://github.com/melamphic/side/raw/main/side.gif)
 
 ## Features
 
