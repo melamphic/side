@@ -4,6 +4,8 @@ version: 0.1.2
 repository: https://github.com/off-by-2/side
 homepage: https://github.com/off-by-2/side
 
+resolution: workspace
+
 environment:
   sdk: ^3.9.0
   flutter: ">=3.35.0"
