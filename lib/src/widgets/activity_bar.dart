@@ -20,14 +20,20 @@ class ActivityBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return BlocBuilder<WorkspaceBloc, WorkspaceState>(
       builder: (context, state) {
         return Container(
           width: config.activityBarWidth,
-          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            border: Border(
+              right: BorderSide(color: colorScheme.outlineVariant),
+            ),
+          ),
           child: Column(
             children: [
-              // Activity items
+              const SizedBox(height: 8),
               ...items.map(
                 (item) => _ActivityBarButton(
                   item: item,
@@ -38,24 +44,7 @@ class ActivityBar extends StatelessWidget {
                   ),
                 ),
               ),
-
               const Spacer(),
-
-              // Settings/gear icon at bottom (optional)
-              _ActivityBarButton(
-                item: const ActivityBarItem(
-                  id: 'settings',
-                  icon: Icons.settings,
-                  label: 'Settings',
-                ),
-                isActive: false,
-                width: config.activityBarWidth,
-                onTap: () {
-                  // Handle settings tap
-                  // Could open settings in a tab or show a menu
-                },
-              ),
-
               const SizedBox(height: 8),
             ],
           ),
@@ -98,33 +87,26 @@ class _ActivityBarButton extends StatelessWidget {
       message: item.tooltip ?? item.label,
       preferBelow: false,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 2),
+        margin: const EdgeInsets.symmetric(vertical: 3),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(10),
             child: Container(
               width: itemSize,
               height: itemSize,
               decoration: BoxDecoration(
-                border: isActive
-                    ? Border(
-                        left: BorderSide(color: colorScheme.primary, width: 2),
-                      )
-                    : null,
-                color: isActive
-                    ? colorScheme.primary.withValues(alpha: 0.1)
-                    : null,
-                borderRadius: BorderRadius.circular(4),
+                color: isActive ? colorScheme.primaryContainer : null,
+                borderRadius: BorderRadius.circular(10),
               ),
               child: item.itemContentBuilder != null
                   ? item.itemContentBuilder!(context, isActive: isActive)
                   : Icon(
                       item.icon,
-                      size: 24,
+                      size: 22,
                       color: isActive
-                          ? colorScheme.primary
+                          ? colorScheme.onPrimaryContainer
                           : colorScheme.onSurfaceVariant,
                     ),
             ),

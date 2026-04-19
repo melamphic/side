@@ -38,9 +38,15 @@ class WorkspaceTabBar extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      height: 36,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      height: 40,
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(color: colorScheme.outlineVariant),
+        ),
+      ),
       child: Row(
         children: [
           // Tab scroll view
@@ -184,16 +190,14 @@ class _TabWidget extends StatelessWidget {
     bool isTarget = false,
   }) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 1),
       decoration: BoxDecoration(
-        color: isActive
-            ? colorScheme.surface
-            : (isTarget
-                  ? colorScheme.surfaceContainerHighest
-                  : Colors.transparent),
-        border: isActive
-            ? Border(bottom: BorderSide(color: colorScheme.primary, width: 2))
-            : null,
+        color: isTarget ? colorScheme.surfaceContainerLow : Colors.transparent,
+        border: Border(
+          bottom: BorderSide(
+            color: isActive ? colorScheme.primary : Colors.transparent,
+            width: 2,
+          ),
+        ),
       ),
       child: Material(
         color: Colors.transparent,
@@ -207,12 +211,11 @@ class _TabWidget extends StatelessWidget {
             await _showContextMenu(context, details.globalPosition);
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            constraints: const BoxConstraints(minWidth: 120, maxWidth: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            constraints: const BoxConstraints(minWidth: 120, maxWidth: 220),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Tab icon
                 if (tab.icon != null) ...[
                   Icon(
                     tab.icon,
@@ -221,19 +224,17 @@ class _TabWidget extends StatelessWidget {
                         ? colorScheme.onSurface
                         : colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                 ],
-
-                // Tab title
                 Flexible(
                   child: Text(
                     tab.title,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: isActive
-                          ? FontWeight.w500
-                          : FontWeight.normal,
+                          ? FontWeight.w600
+                          : FontWeight.w500,
                       color: isActive
                           ? colorScheme.onSurface
                           : colorScheme.onSurfaceVariant,

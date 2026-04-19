@@ -149,14 +149,29 @@ class _SinglePane extends StatelessWidget {
                       }
                     },
                     builder: (context, candidateData, rejectedData) {
+                      final activeIndex = state.activeTab == null
+                          ? -1
+                          : state.tabs.indexWhere(
+                              (t) => t.id == state.activeTab!.id,
+                            );
                       return ColoredBox(
                         color: candidateData.isNotEmpty
                             ? Theme.of(context).colorScheme.primaryContainer
                                   .withValues(alpha: .3)
                             : Theme.of(context).colorScheme.surface,
-                        child: state.activeTab != null
-                            ? _buildPageContent(context, state.activeTab!)
-                            : _buildEmptyPane(context, paneIndex),
+                        child: state.tabs.isEmpty || activeIndex < 0
+                            ? _buildEmptyPane(context, paneIndex)
+                            : IndexedStack(
+                                sizing: StackFit.expand,
+                                index: activeIndex,
+                                children: [
+                                  for (final tab in state.tabs)
+                                    KeyedSubtree(
+                                      key: ValueKey(tab.id),
+                                      child: _buildPageContent(context, tab),
+                                    ),
+                                ],
+                              ),
                       );
                     },
                   ),

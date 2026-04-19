@@ -25,34 +25,40 @@ class WorkspaceSidebar extends StatelessWidget {
             ? config.sidebarViews[activeActivity]
             : null;
 
+        final colorScheme = Theme.of(context).colorScheme;
         if (sidebarView == null) {
-          return ColoredBox(
-            color: Theme.of(context).colorScheme.surfaceContainerLow,
-            child: const Center(
+          return Container(
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              border: Border(
+                right: BorderSide(color: colorScheme.outlineVariant),
+              ),
+            ),
+            child: Center(
               child: Text(
                 'Select an activity',
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
               ),
             ),
           );
         }
 
-        return ColoredBox(
-          color: Theme.of(context).colorScheme.surfaceContainerLow,
+        return Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            border: Border(
+              right: BorderSide(color: colorScheme.outlineVariant),
+            ),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Sidebar header
               _SidebarHeader(view: sidebarView, config: config),
-
-              // Separator
-              const Divider(height: 1),
-
-              // Content
               Expanded(
                 child: sidebarView.childBuilder != null
                     ? sidebarView.childBuilder!(context)
                     : ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 12),
                         itemCount: sidebarView.groups.length,
                         itemBuilder: (context, index) {
                           final group = sidebarView.groups[index];
@@ -80,22 +86,20 @@ class _SidebarHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(16, 20, 12, 14),
       child: Row(
         children: [
           Expanded(
             child: Text(
               view.title.toUpperCase(),
               style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 1.4,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),
-
-          // Action buttons
           ...view.actions.map(
             (action) => IconButton(
               icon: Icon(action.icon, size: 16),
@@ -370,49 +374,77 @@ class _MenuItemWidget extends StatelessWidget {
           ),
         ),
       ),
-      child: InkWell(
-        onTap: () => _handleItemTap(context),
-        child: Container(
-          padding: EdgeInsets.only(
-            left: leftPadding,
-            right: 12,
-            top: 6,
-            bottom: 6,
-          ),
-          child: Row(
-            children: [
-              if (item.icon != null) ...[
-                Icon(
-                  item.icon,
-                  size: 16,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-              ],
-
-              Expanded(
-                child: Text(
-                  item.label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(context).colorScheme.onSurface,
+      child: BlocSelector<WorkspaceBloc, WorkspaceState, bool>(
+        selector: (state) => state.activeTabId != null &&
+            state.openTabs.any(
+              (t) => t.id == state.activeTabId && t.pageId == item.pageId,
+            ),
+        builder: (context, isActive) {
+          final colorScheme = Theme.of(context).colorScheme;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => _handleItemTap(context),
+                child: Ink(
+                  decoration: BoxDecoration(
+                    color: isActive ? colorScheme.primaryContainer : null,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: leftPadding - 4,
+                      right: 12,
+                      top: 8,
+                      bottom: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        if (item.icon != null) ...[
+                          Icon(
+                            item.icon,
+                            size: 18,
+                            color: isActive
+                                ? colorScheme.onPrimaryContainer
+                                : colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        Expanded(
+                          child: Text(
+                            item.label,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: isActive
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
+                              color: isActive
+                                  ? colorScheme.onPrimaryContainer
+                                  : colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        if (item.shortcut != null) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            item.shortcut!,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-
-              if (item.shortcut != null) ...[
-                const SizedBox(width: 8),
-                Text(
-                  item.shortcut!,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
