@@ -50,26 +50,41 @@ import 'package:side/src/widgets/split_editor.dart';
 /// )
 /// ```
 class WorkspaceShell extends StatelessWidget {
-  /// Creates a [WorkspaceShell]
-  const WorkspaceShell({required this.config, super.key});
+  /// Creates a [WorkspaceShell].
+  ///
+  /// Pass [bloc] to reuse an externally hoisted [WorkspaceBloc] (e.g. so a
+  /// sibling widget above the shell can also dispatch events). When null
+  /// the shell creates and owns its own bloc.
+  const WorkspaceShell({required this.config, this.bloc, super.key});
 
   /// Configuration defining the workspace structure and content
   ///
   /// Contains activity bar items, sidebar views, theming, and behavior settings.
   final WorkspaceConfig config;
 
+  /// Optional pre-existing bloc. When provided, the shell republishes it via
+  /// [BlocProvider.value]; ownership stays with the caller.
+  final WorkspaceBloc? bloc;
+
   @override
   Widget build(BuildContext context) {
+    final external = bloc;
+    if (external != null) {
+      return BlocProvider<WorkspaceBloc>.value(
+        value: external,
+        child: _WorkspaceLayout(config: config),
+      );
+    }
     return BlocProvider(
       create: (context) {
-        final bloc = WorkspaceBloc(maxTabs: config.maxTabs);
+        final owned = WorkspaceBloc(maxTabs: config.maxTabs);
         // Only set default activity if none was restored from hydrated state
         // and we have items in the config.
-        if (bloc.state.activeActivityId == null &&
+        if (owned.state.activeActivityId == null &&
             config.activityBarItems.isNotEmpty) {
-          bloc.add(SwitchActivity(config.activityBarItems.first.id));
+          owned.add(SwitchActivity(config.activityBarItems.first.id));
         }
-        return bloc;
+        return owned;
       },
       child: _WorkspaceLayout(config: config),
     );
