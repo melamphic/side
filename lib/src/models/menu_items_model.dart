@@ -196,7 +196,8 @@ class SidebarView extends Equatable {
   const SidebarView({
     required this.id,
     required this.title,
-    required this.groups,
+    this.items = const [],
+    this.groups = const [],
     this.actions = const [],
     this.searchable = false,
     this.childBuilder,
@@ -209,6 +210,11 @@ class SidebarView extends Equatable {
   ///
   /// Usually matches the activity bar item name but can be more descriptive.
   final String title;
+
+  /// Flat top-level items rendered directly under the sidebar header — use
+  /// these when an activity has no real grouping. They render before
+  /// [groups] so views can mix flat items with grouped sections.
+  final List<MenuItem> items;
 
   /// Top-level groups in this sidebar view
   ///
@@ -236,6 +242,7 @@ class SidebarView extends Equatable {
   List<Object?> get props => [
     id,
     title,
+    items,
     groups,
     actions,
     searchable,

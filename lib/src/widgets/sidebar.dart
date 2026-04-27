@@ -57,13 +57,22 @@ class WorkspaceSidebar extends StatelessWidget {
               Expanded(
                 child: sidebarView.childBuilder != null
                     ? sidebarView.childBuilder!(context)
-                    : ListView.builder(
+                    : ListView(
                         padding: const EdgeInsets.only(bottom: 12),
-                        itemCount: sidebarView.groups.length,
-                        itemBuilder: (context, index) {
-                          final group = sidebarView.groups[index];
-                          return _MenuGroupWidget(group: group, config: config);
-                        },
+                        children: [
+                          // Flat top-level items render first — used when an
+                          // activity has no real grouping, so we don't wrap a
+                          // single child list in a meaningless "Overview"
+                          // collapsible.
+                          for (final item in sidebarView.items)
+                            _MenuItemWidget(
+                              item: item,
+                              config: config,
+                              indentLevel: 0,
+                            ),
+                          for (final group in sidebarView.groups)
+                            _MenuGroupWidget(group: group, config: config),
+                        ],
                       ),
               ),
             ],

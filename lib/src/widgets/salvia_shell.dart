@@ -106,21 +106,29 @@ class _WorkspaceLayout extends StatelessWidget {
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: BlocBuilder<WorkspaceBloc, WorkspaceState>(
         builder: (context, state) {
+          // Activities without a registered sidebarView render the editor
+          // full-bleed (no sidebar, no resize handle). Used for "direct
+          // page" activities like Home where there's no list to navigate.
+          final hasSidebar = state.activeActivityId != null &&
+              config.sidebarViews.containsKey(state.activeActivityId);
           return Row(
             children: [
               // Activity Bar - Using proper ActivityBar widget
               ActivityBar(items: config.activityBarItems, config: config),
 
-              // Resizable Container for Sidebar + Content
-              Expanded(
-                child: ResizableContainer(
-                  sidebarWidth: state.sidebarWidth ?? config.sidebarWidth,
-                  onResize: (width) =>
-                      context.read<WorkspaceBloc>().add(ResizeSidebar(width)),
-                  sidebar: WorkspaceSidebar(config: config),
-                  content: const SplitEditor(),
-                ),
-              ),
+              if (hasSidebar)
+                Expanded(
+                  child: ResizableContainer(
+                    sidebarWidth: state.sidebarWidth ?? config.sidebarWidth,
+                    onResize: (width) => context
+                        .read<WorkspaceBloc>()
+                        .add(ResizeSidebar(width)),
+                    sidebar: WorkspaceSidebar(config: config),
+                    content: const SplitEditor(),
+                  ),
+                )
+              else
+                const Expanded(child: SplitEditor()),
             ],
           );
         },
