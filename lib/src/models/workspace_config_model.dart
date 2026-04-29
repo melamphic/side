@@ -24,6 +24,7 @@ class WorkspaceConfig {
     this.sidebarWidth = 256.0,
     this.maxVerticalSplits = 2,
     this.emptyPaneBuilder,
+    this.collapsibleSidebar = false,
   });
 
   /// Items displayed in the leftmost activity bar (like VS Code)
@@ -71,6 +72,12 @@ class WorkspaceConfig {
   /// If provided, this widget is shown when a pane has no open tabs.
   /// If null, a default placeholder is displayed.
   final Widget Function(BuildContext context, int paneIndex)? emptyPaneBuilder;
+
+  /// When true, the sidebar collapses to zero width whenever the cursor
+  /// leaves the activity bar + sidebar region, and animates back open on
+  /// hover. Activity bar stays visible at all times. Default false to
+  /// preserve the persistent-sidebar behavior existing consumers expect.
+  final bool collapsibleSidebar;
 }
 
 /// Represents an item in the VS Code-like activity bar
