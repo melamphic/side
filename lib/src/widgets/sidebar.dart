@@ -1,3 +1,7 @@
+// `design` is provided transitively via the workspace; adding it to side's
+// pubspec would couple the package to the host app's design system.
+// ignore: depend_on_referenced_packages
+import 'package:design/design.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -17,7 +21,6 @@ class WorkspaceSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // efficient selector to only rebuild when active activity changes
     return BlocSelector<WorkspaceBloc, WorkspaceState, String?>(
       selector: (state) => state.activeActivityId,
       builder: (context, activeActivity) {
@@ -25,45 +28,29 @@ class WorkspaceSidebar extends StatelessWidget {
             ? config.sidebarViews[activeActivity]
             : null;
 
-        final colorScheme = Theme.of(context).colorScheme;
         if (sidebarView == null) {
-          return Container(
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              border: Border(
-                right: BorderSide(color: colorScheme.outlineVariant),
-              ),
-            ),
+          return const _SidebarShell(
             child: Center(
               child: Text(
                 'Select an activity',
-                style: TextStyle(color: colorScheme.onSurfaceVariant),
+                style: TextStyle(color: SalviaColors.inkMuted),
               ),
             ),
           );
         }
 
-        return Container(
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            border: Border(
-              right: BorderSide(color: colorScheme.outlineVariant),
-            ),
-          ),
+        return _SidebarShell(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _SidebarHeader(view: sidebarView, config: config),
+              _SidebarHeader(view: sidebarView),
+              const SizedBox(height: 12),
               Expanded(
                 child: sidebarView.childBuilder != null
                     ? sidebarView.childBuilder!(context)
                     : ListView(
-                        padding: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         children: [
-                          // Flat top-level items render first — used when an
-                          // activity has no real grouping, so we don't wrap a
-                          // single child list in a meaningless "Overview"
-                          // collapsible.
                           for (final item in sidebarView.items)
                             _MenuItemWidget(
                               item: item,
@@ -83,51 +70,60 @@ class WorkspaceSidebar extends StatelessWidget {
   }
 }
 
-/// Header section of the sidebar
-///
-/// Shows the title and action buttons for the current sidebar view.
-class _SidebarHeader extends StatelessWidget {
-  const _SidebarHeader({required this.view, required this.config});
-
-  final SidebarView view;
-  final WorkspaceConfig config;
+class _SidebarShell extends StatelessWidget {
+  const _SidebarShell({required this.child});
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 20, 12, 14),
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      decoration: const BoxDecoration(
+        color: SalviaColors.canvas,
+        border: Border(
+          right: BorderSide(color: SalviaColors.hairline),
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _SidebarHeader extends StatelessWidget {
+  const _SidebarHeader({required this.view});
+
+  final SidebarView view;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 4, 12, 4),
       child: Row(
         children: [
           Expanded(
             child: Text(
-              view.title.toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w500,
-                letterSpacing: 1.4,
-                color: theme.colorScheme.onSurfaceVariant,
+              view.title,
+              style: SalviaTypography.bodyStrong.copyWith(
+                color: SalviaColors.ink,
               ),
             ),
           ),
-          ...view.actions.map(
-            (action) => IconButton(
+          for (final action in view.actions)
+            IconButton(
               icon: Icon(action.icon, size: 16),
+              color: SalviaColors.inkMuted,
               onPressed: action.onTap,
               tooltip: action.tooltip,
-              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
               padding: const EdgeInsets.all(4),
+              hoverColor: SalviaColors.surfaceMuted,
             ),
-          ),
         ],
       ),
     );
   }
 }
 
-/// Widget representing a top-level menu group
-///
-/// Can contain direct menu items and nested sub-groups.
-/// Supports expand/collapse functionality.
 class _MenuGroupWidget extends StatelessWidget {
   const _MenuGroupWidget({required this.group, required this.config});
 
@@ -136,85 +132,40 @@ class _MenuGroupWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Only rebuild this specific group when its expansion state changes
     return BlocSelector<WorkspaceBloc, WorkspaceState, bool>(
       selector: (state) => state.isGroupExpanded(group.id),
       builder: (context, isExpanded) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Group header
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  // Expand/Collapse Toggle
-                  InkWell(
-                    onTap: () => context.read<WorkspaceBloc>().add(
-                      ToggleSidebarGroup(group.id),
-                    ),
-                    borderRadius: BorderRadius.circular(4),
-                    child: Padding(
-                      padding: const EdgeInsets.all(2),
-                      child: Icon(
-                        isExpanded
-                            ? Icons.keyboard_arrow_down
-                            : Icons.keyboard_arrow_right,
-                        size: 16,
-                      ),
-                    ),
-                  ),
-                  if (group.icon != null) ...[
-                    const SizedBox(width: 4),
-                    Icon(group.icon, size: 16),
-                  ],
-                  const SizedBox(width: 8),
-
-                  // Group Label
-                  Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        if (group.pageId != null) {
-                          context.read<WorkspaceBloc>().add(
-                            OpenTab(
-                              pageId: group.pageId!,
-                              title: group.label,
-                              icon: group.icon,
-                              pageArgs: group.pageArgs,
-                            ),
-                          );
-                        } else {
-                          // Default behavior: Toggle expansion if not a page
-                          context.read<WorkspaceBloc>().add(
-                            ToggleSidebarGroup(group.id),
-                          );
-                        }
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Text(
-                          group.label,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+            _GroupHeader(
+              group: group,
+              isExpanded: isExpanded,
+              onToggle: () => context.read<WorkspaceBloc>().add(
+                ToggleSidebarGroup(group.id),
               ),
+              onOpen: () {
+                if (group.pageId != null) {
+                  context.read<WorkspaceBloc>().add(
+                    OpenTab(
+                      pageId: group.pageId!,
+                      title: group.label,
+                      icon: group.icon,
+                      pageArgs: group.pageArgs,
+                    ),
+                  );
+                } else {
+                  context.read<WorkspaceBloc>().add(
+                    ToggleSidebarGroup(group.id),
+                  );
+                }
+              },
             ),
-
-            // Group content (when expanded)
             if (isExpanded) ...[
-              // Direct items in this group
               ...group.items.map(
                 (item) =>
                     _MenuItemWidget(item: item, config: config, indentLevel: 1),
               ),
-
-              // Sub-groups in this group
               ...group.subGroups.map(
                 (subGroup) => _MenuSubGroupWidget(
                   subGroup: subGroup,
@@ -230,9 +181,81 @@ class _MenuGroupWidget extends StatelessWidget {
   }
 }
 
-/// Widget representing a nested sub-group within a menu group
-///
-/// Third level of hierarchy - can only contain menu items.
+class _GroupHeader extends StatefulWidget {
+  const _GroupHeader({
+    required this.group,
+    required this.isExpanded,
+    required this.onToggle,
+    required this.onOpen,
+  });
+  final MenuGroup group;
+  final bool isExpanded;
+  final VoidCallback onToggle;
+  final VoidCallback onOpen;
+
+  @override
+  State<_GroupHeader> createState() => _GroupHeaderState();
+}
+
+class _GroupHeaderState extends State<_GroupHeader> {
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: Material(
+        color: _hovering ? SalviaColors.surfaceMuted : Colors.transparent,
+        borderRadius: BorderRadius.circular(SalviaRadius.md),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(SalviaRadius.md),
+          onTap: widget.onOpen,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                InkWell(
+                  onTap: widget.onToggle,
+                  borderRadius: BorderRadius.circular(SalviaRadius.xs),
+                  child: Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: Icon(
+                      widget.isExpanded
+                          ? PhosphorIconsRegular.caretDown
+                          : PhosphorIconsRegular.caretRight,
+                      size: 14,
+                      color: SalviaColors.inkMuted,
+                    ),
+                  ),
+                ),
+                if (widget.group.icon != null) ...[
+                  const SizedBox(width: 8),
+                  Icon(
+                    widget.group.icon,
+                    size: 16,
+                    color: SalviaColors.inkMuted,
+                  ),
+                ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.group.label,
+                    style: SalviaTypography.bodyStrong.copyWith(
+                      color: SalviaColors.inkMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _MenuSubGroupWidget extends StatelessWidget {
   const _MenuSubGroupWidget({
     required this.subGroup,
@@ -246,7 +269,6 @@ class _MenuSubGroupWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Optimization: Use BlocSelector to rebuild only when this specific subgroup expands/collapses
     final subGroupKey = '$parentGroupId.${subGroup.id}';
 
     return BlocSelector<WorkspaceBloc, WorkspaceState, bool>(
@@ -255,39 +277,35 @@ class _MenuSubGroupWidget extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Sub-group header
-            Container(
-              padding: const EdgeInsets.only(
-                left: 32,
-                right: 12,
-                top: 4,
-                bottom: 4,
-              ),
+            Padding(
+              padding: const EdgeInsets.only(left: 24, top: 4, bottom: 4),
               child: Row(
                 children: [
-                  // Expand/Collapse Toggle
                   InkWell(
                     onTap: () => context.read<WorkspaceBloc>().add(
                       ToggleSidebarGroup(subGroupKey),
                     ),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(SalviaRadius.xs),
                     child: Padding(
                       padding: const EdgeInsets.all(2),
                       child: Icon(
                         isExpanded
-                            ? Icons.keyboard_arrow_down
-                            : Icons.keyboard_arrow_right,
-                        size: 14,
+                            ? PhosphorIconsRegular.caretDown
+                            : PhosphorIconsRegular.caretRight,
+                        size: 12,
+                        color: SalviaColors.inkMuted,
                       ),
                     ),
                   ),
                   if (subGroup.icon != null) ...[
-                    const SizedBox(width: 4),
-                    Icon(subGroup.icon, size: 14),
+                    const SizedBox(width: 6),
+                    Icon(
+                      subGroup.icon,
+                      size: 14,
+                      color: SalviaColors.inkMuted,
+                    ),
                   ],
-                  const SizedBox(width: 6),
-
-                  // Sub-group Label
+                  const SizedBox(width: 8),
                   Expanded(
                     child: InkWell(
                       onTap: () {
@@ -301,7 +319,6 @@ class _MenuSubGroupWidget extends StatelessWidget {
                             ),
                           );
                         } else {
-                          // Default behavior: Toggle expansion
                           context.read<WorkspaceBloc>().add(
                             ToggleSidebarGroup(subGroupKey),
                           );
@@ -311,9 +328,8 @@ class _MenuSubGroupWidget extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 2),
                         child: Text(
                           subGroup.label,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
+                          style: SalviaTypography.bodyMain.copyWith(
+                            color: SalviaColors.inkMuted,
                           ),
                         ),
                       ),
@@ -322,8 +338,6 @@ class _MenuSubGroupWidget extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Sub-group items (when expanded)
             if (isExpanded)
               ...subGroup.items.map(
                 (item) =>
@@ -336,11 +350,7 @@ class _MenuSubGroupWidget extends StatelessWidget {
   }
 }
 
-/// Widget representing a clickable menu item
-///
-/// Opens the associated page in a new tab when clicked.
-/// Supports different indentation levels based on hierarchy.
-class _MenuItemWidget extends StatelessWidget {
+class _MenuItemWidget extends StatefulWidget {
   const _MenuItemWidget({
     required this.item,
     required this.config,
@@ -352,97 +362,100 @@ class _MenuItemWidget extends StatelessWidget {
   final int indentLevel;
 
   @override
+  State<_MenuItemWidget> createState() => _MenuItemWidgetState();
+}
+
+class _MenuItemWidgetState extends State<_MenuItemWidget> {
+  bool _hovering = false;
+
+  @override
   Widget build(BuildContext context) {
-    final leftPadding = 12.0 + (indentLevel * 20.0);
+    final extraIndent = widget.indentLevel * 16.0;
 
     return Draggable<WorkspaceDragData>(
       data: WorkspaceDragData(
-        pageId: item.pageId,
-        title: item.label,
-        icon: item.icon,
-        pageArgs: item.pageArgs,
+        pageId: widget.item.pageId,
+        title: widget.item.label,
+        icon: widget.item.icon,
+        pageArgs: widget.item.pageArgs,
       ),
       feedback: Material(
         elevation: 4,
-        borderRadius: BorderRadius.circular(4),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(SalviaRadius.md),
+        color: SalviaColors.canvas,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (item.icon != null) ...[
-                Icon(item.icon, size: 16),
+              if (widget.item.icon != null) ...[
+                Icon(widget.item.icon, size: 16, color: SalviaColors.ink),
                 const SizedBox(width: 8),
               ],
               Text(
-                item.label,
-                style: Theme.of(context).textTheme.bodyMedium,
+                widget.item.label,
+                style: SalviaTypography.bodyMain.copyWith(
+                  color: SalviaColors.ink,
+                ),
               ),
             ],
           ),
         ),
       ),
       child: BlocSelector<WorkspaceBloc, WorkspaceState, bool>(
-        selector: (state) => state.activeTabId != null &&
+        selector: (state) =>
+            state.activeTabId != null &&
             state.openTabs.any(
-              (t) => t.id == state.activeTabId && t.pageId == item.pageId,
+              (t) =>
+                  t.id == state.activeTabId && t.pageId == widget.item.pageId,
             ),
         builder: (context, isActive) {
-          final colorScheme = Theme.of(context).colorScheme;
+          final bg = isActive
+              ? SalviaColors.primarySoft
+              : (_hovering ? SalviaColors.surfaceMuted : Colors.transparent);
+          final fg = isActive ? SalviaColors.primary : SalviaColors.inkMuted;
+          final fontWeight = isActive ? FontWeight.w600 : FontWeight.w500;
+
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () => _handleItemTap(context),
-                child: Ink(
-                  decoration: BoxDecoration(
-                    color: isActive ? colorScheme.primaryContainer : null,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+            padding: const EdgeInsets.symmetric(vertical: 1),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              onEnter: (_) => setState(() => _hovering = true),
+              onExit: (_) => setState(() => _hovering = false),
+              child: Material(
+                color: bg,
+                borderRadius: BorderRadius.circular(SalviaRadius.md),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(SalviaRadius.md),
+                  onTap: () => _handleItemTap(context),
                   child: Padding(
-                    padding: EdgeInsets.only(
-                      left: leftPadding - 4,
-                      right: 12,
-                      top: 8,
-                      bottom: 8,
+                    padding: EdgeInsets.fromLTRB(
+                      12 + extraIndent,
+                      8,
+                      12,
+                      8,
                     ),
                     child: Row(
                       children: [
-                        if (item.icon != null) ...[
-                          Icon(
-                            item.icon,
-                            size: 18,
-                            color: isActive
-                                ? colorScheme.onPrimaryContainer
-                                : colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 10),
+                        if (widget.item.icon != null) ...[
+                          Icon(widget.item.icon, size: 18, color: fg),
+                          const SizedBox(width: 12),
                         ],
                         Expanded(
                           child: Text(
-                            item.label,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: isActive
-                                  ? FontWeight.w600
-                                  : FontWeight.w500,
-                              color: isActive
-                                  ? colorScheme.onPrimaryContainer
-                                  : colorScheme.onSurface,
+                            widget.item.label,
+                            style: SalviaTypography.bodyMain.copyWith(
+                              color: fg,
+                              fontWeight: fontWeight,
                             ),
                           ),
                         ),
-                        if (item.shortcut != null) ...[
+                        if (widget.item.shortcut != null) ...[
                           const SizedBox(width: 8),
                           Text(
-                            item.shortcut!,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: colorScheme.onSurfaceVariant,
+                            widget.item.shortcut!,
+                            style: SalviaTypography.captionStd.copyWith(
+                              color: SalviaColors.inkDim,
                             ),
                           ),
                         ],
@@ -458,16 +471,13 @@ class _MenuItemWidget extends StatelessWidget {
     );
   }
 
-  /// Handles tapping on a menu item
-  ///
-  /// Opens the associated page in a new tab, or focuses existing tab.
   void _handleItemTap(BuildContext context) {
     context.read<WorkspaceBloc>().add(
       OpenTab(
-        pageId: item.pageId,
-        title: item.label,
-        icon: item.icon,
-        pageArgs: item.pageArgs,
+        pageId: widget.item.pageId,
+        title: widget.item.label,
+        icon: widget.item.icon,
+        pageArgs: widget.item.pageArgs,
       ),
     );
   }

@@ -20,8 +20,8 @@ class WorkspaceConfig {
     required this.sidebarViews,
     required this.pageRegistry,
     this.maxTabs = 10,
-    this.activityBarWidth = 48.0,
-    this.sidebarWidth = 250.0,
+    this.activityBarWidth = 60.0,
+    this.sidebarWidth = 256.0,
     this.maxVerticalSplits = 2,
     this.emptyPaneBuilder,
   });

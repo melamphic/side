@@ -1,3 +1,7 @@
+// `design` is provided transitively via the workspace; adding it to side's
+// pubspec would couple the package to the host app's design system.
+// ignore: depend_on_referenced_packages
+import 'package:design/design.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -20,32 +24,35 @@ class ActivityBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return BlocBuilder<WorkspaceBloc, WorkspaceState>(
       builder: (context, state) {
         return Container(
           width: config.activityBarWidth,
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
+          decoration: const BoxDecoration(
+            color: SalviaColors.canvas,
             border: Border(
-              right: BorderSide(color: colorScheme.outlineVariant),
+              right: BorderSide(color: SalviaColors.hairline),
             ),
           ),
           child: Column(
             children: [
-              const SizedBox(height: 8),
-              ...items.map(
-                (item) => _ActivityBarButton(
-                  item: item,
-                  isActive: state.activeActivityId == item.id,
-                  width: config.activityBarWidth,
-                  onTap: () => context.read<WorkspaceBloc>().add(
-                    SwitchActivity(item.id),
-                  ),
+              const _BrandMark(),
+              Expanded(
+                child: Column(
+                  children: [
+                    for (final item in items)
+                      _ActivityBarButton(
+                        width: config.activityBarWidth,
+                        item: item,
+                        isActive: state.activeActivityId == item.id,
+                        onTap: () => context.read<WorkspaceBloc>().add(
+                          SwitchActivity(item.id),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              const Spacer(),
-              const SizedBox(height: 8),
+              const _BottomAvatar(),
             ],
           ),
         );
@@ -54,10 +61,49 @@ class ActivityBar extends StatelessWidget {
   }
 }
 
-/// Individual button in the activity bar
-///
-/// Shows an icon with hover effects and active state indication.
-class _ActivityBarButton extends StatelessWidget {
+class _BrandMark extends StatelessWidget {
+  const _BrandMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(top: 24, bottom: 32),
+      child: Icon(
+        PhosphorIconsFill.heartbeat,
+        size: 28,
+        color: SalviaColors.primary,
+      ),
+    );
+  }
+}
+
+class _BottomAvatar extends StatelessWidget {
+  const _BottomAvatar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: SalviaColors.surfaceMuted,
+          borderRadius: BorderRadius.circular(SalviaRadius.full),
+          border: Border.all(color: SalviaColors.hairline),
+        ),
+        alignment: Alignment.center,
+        child: const Icon(
+          PhosphorIconsRegular.user,
+          size: 16,
+          color: SalviaColors.inkMuted,
+        ),
+      ),
+    );
+  }
+}
+
+class _ActivityBarButton extends StatefulWidget {
   const _ActivityBarButton({
     required this.item,
     required this.isActive,
@@ -65,50 +111,71 @@ class _ActivityBarButton extends StatelessWidget {
     required this.width,
   });
 
-  /// The activity bar item to display
   final ActivityBarItem item;
-
-  /// Whether this item is currently active
   final bool isActive;
-
-  /// Callback when the button is tapped
   final VoidCallback onTap;
-
-  /// Width of the activity bar
   final double width;
 
   @override
+  State<_ActivityBarButton> createState() => _ActivityBarButtonState();
+}
+
+class _ActivityBarButtonState extends State<_ActivityBarButton> {
+  bool _hovering = false;
+
+  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final itemSize = width - 4;
+    final iconColor = widget.isActive
+        ? SalviaColors.primary
+        : (_hovering ? SalviaColors.inkMuted : SalviaColors.inkDim);
 
     return Tooltip(
-      message: item.tooltip ?? item.label,
+      message: widget.item.tooltip ?? widget.item.label,
       preferBelow: false,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 3),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: itemSize,
-              height: itemSize,
-              decoration: BoxDecoration(
-                color: isActive ? colorScheme.primaryContainer : null,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: item.itemContentBuilder != null
-                  ? item.itemContentBuilder!(context, isActive: isActive)
-                  : Icon(
-                      item.icon,
-                      size: 22,
-                      color: isActive
-                          ? colorScheme.onPrimaryContainer
-                          : colorScheme.onSurfaceVariant,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => _hovering = true),
+          onExit: (_) => setState(() => _hovering = false),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onTap,
+            child: SizedBox(
+              width: widget.width,
+              height: 24,
+              child: Stack(
+                children: [
+                  if (widget.isActive)
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 4,
+                        decoration: const BoxDecoration(
+                          color: SalviaColors.primary,
+                          borderRadius: BorderRadius.only(
+                            topRight: Radius.circular(SalviaRadius.full),
+                            bottomRight: Radius.circular(SalviaRadius.full),
+                          ),
+                        ),
+                      ),
                     ),
+                  Center(
+                    child: widget.item.itemContentBuilder != null
+                        ? widget.item.itemContentBuilder!(
+                            context,
+                            isActive: widget.isActive,
+                          )
+                        : Icon(
+                            widget.item.icon,
+                            size: 22,
+                            color: iconColor,
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

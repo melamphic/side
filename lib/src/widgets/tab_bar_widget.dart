@@ -1,3 +1,7 @@
+// `design` is provided transitively via the workspace; adding it to side's
+// pubspec would couple the package to the host app's design system.
+// ignore: depend_on_referenced_packages
+import 'package:design/design.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:side/side.dart';
@@ -38,45 +42,54 @@ class WorkspaceTabBar extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      height: 40,
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      decoration: const BoxDecoration(
+        color: SalviaColors.canvas,
         border: Border(
-          bottom: BorderSide(color: colorScheme.outlineVariant),
+          bottom: BorderSide(color: SalviaColors.hairline),
         ),
       ),
       child: Row(
         children: [
-          // Tab scroll view
           Expanded(
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: tabs.length,
-              itemBuilder: (context, index) {
-                final tab = tabs[index];
-                final isActive = tab.id == activeTab?.id;
-
-                return _TabWidget(
-                  tab: tab,
-                  isActive: isActive,
-                  paneIndex: paneIndex,
-                  index: index,
-                );
-              },
+            child: Stack(
+              alignment: Alignment.centerRight,
+              children: [
+                Align(
+                  alignment: Alignment.bottomLeft,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (var i = 0; i < tabs.length; i++)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              left: i == 0 ? 0 : 4,
+                              top: 16,
+                            ),
+                            child: _DocumentTabChip(
+                              tab: tabs[i],
+                              isActive: tabs[i].id == activeTab?.id,
+                              paneIndex: paneIndex,
+                              index: i,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-
-          // Split controls
-          if (canSplit || canClose) ...[
-            const VerticalDivider(width: 1),
+          if (canSplit || canClose)
             _SplitControls(
               paneIndex: paneIndex,
               canSplit: canSplit,
               canClose: canClose,
             ),
-          ],
         ],
       ),
     );
@@ -95,9 +108,8 @@ class _TabDragData {
   final int index;
 }
 
-/// Individual tab widget within the tab bar
-class _TabWidget extends StatelessWidget {
-  const _TabWidget({
+class _DocumentTabChip extends StatefulWidget {
+  const _DocumentTabChip({
     required this.tab,
     required this.isActive,
     required this.paneIndex,
@@ -110,27 +122,31 @@ class _TabWidget extends StatelessWidget {
   final int index;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+  State<_DocumentTabChip> createState() => _DocumentTabChipState();
+}
 
+class _DocumentTabChipState extends State<_DocumentTabChip> {
+  bool _hoverClose = false;
+
+  @override
+  Widget build(BuildContext context) {
     return DragTarget<_TabDragData>(
-      onWillAcceptWithDetails: (details) => details.data.tabId != tab.id,
+      onWillAcceptWithDetails: (details) => details.data.tabId != widget.tab.id,
       onAcceptWithDetails: (details) {
         final data = details.data;
-        if (data.paneIndex == paneIndex) {
+        if (data.paneIndex == widget.paneIndex) {
           context.read<WorkspaceBloc>().add(
             ReorderTab(
-              paneIndex: paneIndex,
+              paneIndex: widget.paneIndex,
               oldIndex: data.index,
-              newIndex: index,
+              newIndex: widget.index,
             ),
           );
         } else {
           context.read<WorkspaceBloc>().add(
             MoveTabToPane(
               tabId: data.tabId,
-              targetPaneIndex: paneIndex,
+              targetPaneIndex: widget.paneIndex,
             ),
           );
         }
@@ -138,142 +154,117 @@ class _TabWidget extends StatelessWidget {
       builder: (context, candidateData, rejectedData) {
         return Draggable<_TabDragData>(
           data: _TabDragData(
-            tabId: tab.id,
-            paneIndex: paneIndex,
-            index: index,
+            tabId: widget.tab.id,
+            paneIndex: widget.paneIndex,
+            index: widget.index,
           ),
           feedback: Material(
             elevation: 4,
             color: Colors.transparent,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                border: Border.all(color: colorScheme.outlineVariant),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (tab.icon != null) ...[
-                    Icon(tab.icon, size: 16, color: colorScheme.onSurface),
-                    const SizedBox(width: 8),
-                  ],
-                  Text(
-                    tab.title,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: colorScheme.onSurface,
-                      decoration: TextDecoration.none,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            child: _chip(isFeedback: true),
           ),
-          childWhenDragging: Opacity(
-            opacity: 0.5,
-            child: _buildValues(context, colorScheme),
-          ),
-          child: _buildValues(
-            context,
-            colorScheme,
-            isTarget: candidateData.isNotEmpty,
-          ),
+          childWhenDragging: Opacity(opacity: 0.5, child: _chip()),
+          child: _chip(isTarget: candidateData.isNotEmpty),
         );
       },
     );
   }
 
-  Widget _buildValues(
-    BuildContext context,
-    ColorScheme colorScheme, {
-    bool isTarget = false,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isTarget ? colorScheme.surfaceContainerLow : Colors.transparent,
-        border: Border(
-          bottom: BorderSide(
-            color: isActive ? colorScheme.primary : Colors.transparent,
-            width: 2,
-          ),
+  Widget _chip({bool isTarget = false, bool isFeedback = false}) {
+    final bgColor = widget.isActive
+        ? SalviaColors.canvas
+        : (isTarget ? SalviaColors.primarySoft : const Color(0xFFF1F5F9));
+    final textColor = widget.isActive ? SalviaColors.ink : SalviaColors.inkMuted;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(SalviaRadius.md),
+          topRight: Radius.circular(SalviaRadius.md),
         ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            context.read<WorkspaceBloc>().add(
-              SwitchTab(tabId: tab.id, paneIndex: paneIndex),
-            );
-          },
-          onSecondaryTapUp: (details) async {
-            await _showContextMenu(context, details.globalPosition);
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            constraints: const BoxConstraints(minWidth: 120, maxWidth: 220),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (tab.icon != null) ...[
-                  Icon(
-                    tab.icon,
-                    size: 16,
-                    color: isActive
-                        ? colorScheme.onSurface
-                        : colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                Flexible(
-                  child: Text(
-                    tab.title,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isActive
-                          ? FontWeight.w600
-                          : FontWeight.w500,
-                      color: isActive
-                          ? colorScheme.onSurface
-                          : colorScheme.onSurfaceVariant,
-                    ),
+        onTap: () {
+          context.read<WorkspaceBloc>().add(
+            SwitchTab(tabId: widget.tab.id, paneIndex: widget.paneIndex),
+          );
+        },
+        onSecondaryTapUp: (details) async {
+          await _showContextMenu(context, details.globalPosition);
+        },
+        child: Container(
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          constraints: const BoxConstraints(minWidth: 120, maxWidth: 240),
+          decoration: BoxDecoration(
+            color: bgColor,
+            border: Border.all(color: SalviaColors.hairline),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(SalviaRadius.md),
+              topRight: Radius.circular(SalviaRadius.md),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.tab.icon != null) ...[
+                Icon(widget.tab.icon, size: 14, color: textColor),
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Text(
+                  widget.tab.title,
+                  overflow: TextOverflow.ellipsis,
+                  style: SalviaTypography.captionStd.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
                   ),
                 ),
-
-                // Dirty indicator
-                if (tab.isDirty) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
-                      color: Colors.orange,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ],
-
-                const SizedBox(width: 8),
-
-                // Close button
-                InkWell(
-                  onTap: () {
-                    context.read<WorkspaceBloc>().add(CloseTab(tab.id));
-                  },
-                  borderRadius: BorderRadius.circular(4),
-                  child: Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: Icon(
-                      Icons.close,
-                      size: 14,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+              ),
+              if (widget.tab.isDirty) ...[
+                const SizedBox(width: 6),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: SalviaColors.primary,
+                    shape: BoxShape.circle,
                   ),
                 ),
               ],
-            ),
+              const SizedBox(width: 8),
+              if (!isFeedback)
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  onEnter: (_) => setState(() => _hoverClose = true),
+                  onExit: (_) => setState(() => _hoverClose = false),
+                  child: Material(
+                    color: _hoverClose
+                        ? SalviaColors.surfaceMuted
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(4),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(4),
+                      onTap: () {
+                        context
+                            .read<WorkspaceBloc>()
+                            .add(CloseTab(widget.tab.id));
+                      },
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Icon(
+                          Icons.close,
+                          size: 14,
+                          color: _hoverClose
+                              ? SalviaColors.ink
+                              : SalviaColors.inkMuted,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -293,19 +284,20 @@ class _TabWidget extends StatelessWidget {
       items: <PopupMenuEntry<String>>[
         PopupMenuItem<String>(
           value: 'close',
-          onTap: () => bloc.add(CloseTab(tab.id)),
+          onTap: () => bloc.add(CloseTab(widget.tab.id)),
           child: const Text('Close'),
         ),
         PopupMenuItem<String>(
           value: 'close_others',
-          onTap: () =>
-              bloc.add(CloseOthers(tabId: tab.id, paneIndex: paneIndex)),
+          onTap: () => bloc.add(
+            CloseOthers(tabId: widget.tab.id, paneIndex: widget.paneIndex),
+          ),
           child: const Text('Close Others'),
         ),
         const PopupMenuDivider(),
         PopupMenuItem<String>(
           value: 'close_all',
-          onTap: () => bloc.add(CloseAll(paneIndex)),
+          onTap: () => bloc.add(CloseAll(widget.paneIndex)),
           child: const Text('Close All'),
         ),
       ],
@@ -332,12 +324,15 @@ class _SplitControls extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Split button
         if (canSplit)
           Tooltip(
             message: 'Split Editor Right',
             child: IconButton(
-              icon: const Icon(Icons.call_split, size: 16),
+              icon: const Icon(
+                Icons.call_split,
+                size: 16,
+                color: SalviaColors.inkMuted,
+              ),
               onPressed: () {
                 context.read<WorkspaceBloc>().add(const SplitView());
               },
@@ -345,13 +340,15 @@ class _SplitControls extends StatelessWidget {
               padding: const EdgeInsets.all(4),
             ),
           ),
-
-        // Close split button
         if (canClose)
           Tooltip(
             message: 'Close Split',
             child: IconButton(
-              icon: const Icon(Icons.close, size: 16),
+              icon: const Icon(
+                Icons.close,
+                size: 16,
+                color: SalviaColors.inkMuted,
+              ),
               onPressed: () {
                 context.read<WorkspaceBloc>().add(CloseSplit(paneIndex));
               },
@@ -359,7 +356,6 @@ class _SplitControls extends StatelessWidget {
               padding: const EdgeInsets.all(4),
             ),
           ),
-
         const SizedBox(width: 4),
       ],
     );
