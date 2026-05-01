@@ -5,7 +5,7 @@
 ///
 /// - **Activity Bar**: Leftmost navigation with main sections
 /// - **Sidebar**: Hierarchical content that changes based on activity
-/// - **Split Editor**: Multi-pane content area with tab management
+/// - **Editor**: Tabbed content area with persistent state
 /// - **Persistent State**: Maintains tabs and layout across activity switches
 ///
 /// Perfect for building CRM, ERP, or other data-intensive applications that

@@ -7,7 +7,7 @@ import 'package:side/src/models/workspace_config_model.dart';
 import 'package:side/src/widgets/activity_bar.dart';
 import 'package:side/src/widgets/resizable_container.dart';
 import 'package:side/src/widgets/sidebar.dart';
-import 'package:side/src/widgets/split_editor.dart';
+import 'package:side/src/widgets/split_editor.dart' show WorkspaceEditor;
 
 /// Main workspace shell widget providing a VS Code-like interface
 ///
@@ -16,22 +16,22 @@ import 'package:side/src/widgets/split_editor.dart';
 ///
 /// - **Activity Bar**: Leftmost vertical bar with main activity icons
 /// - **Sidebar**: Context-sensitive panel showing hierarchical content
-/// - **Split Editor**: Main content area supporting vertical splits
+/// - **Editor**: Main content area with tab management
 /// - **Persistent State**: Maintains open tabs and layout across activity switches
 ///
 /// ## Layout Structure
 /// ```text
 /// ┌─────────────┬──────────────┬─────────────────────────┐
-/// │ Activity    │   Sidebar    │     Split Editor        │
+/// │ Activity    │   Sidebar    │        Editor           │
 /// │ Bar         │             │                         │
 /// │ (48px)      │  (Variable)  │     (Remainder)         │
 /// │             │             │                         │
-/// │ • Explorer  │ - Main Item  │ ┌─────────┬─────────────┐ │
-/// │ • Search    │   - Child    │ │ Tab Bar │   Tab Bar   │ │
-/// │ • Git       │   - Child    │ ├─────────┼─────────────┤ │
-/// │ • Debug     │ - Main Item  │ │         │             │ │
-/// │ • Extensions│              │ │ Content │   Content   │ │
-/// │             │              │ │         │             │ │
+/// │ • Explorer  │ - Main Item  │ ┌──────────────────────┐│
+/// │ • Search    │   - Child    │ │       Tab Bar        ││
+/// │ • Git       │   - Child    │ ├──────────────────────┤│
+/// │ • Debug     │ - Main Item  │ │                      ││
+/// │ • Extensions│              │ │       Content        ││
+/// │             │              │ │                      ││
 /// └─────────────┴──────────────┴─────────────────────────┘
 /// ```
 ///
@@ -176,11 +176,11 @@ class _WorkspaceLayoutState extends State<_WorkspaceLayout> {
                           .read<WorkspaceBloc>()
                           .add(ResizeSidebar(width)),
                       sidebar: WorkspaceSidebar(config: widget.config),
-                      content: const SplitEditor(),
+                      content: const WorkspaceEditor(),
                     ),
                   )
                 else
-                  const Expanded(child: SplitEditor()),
+                  const Expanded(child: WorkspaceEditor()),
               ],
             );
           }
@@ -244,7 +244,7 @@ class _WorkspaceLayoutState extends State<_WorkspaceLayout> {
                   ],
                 ),
               ),
-              const Expanded(child: SplitEditor()),
+              const Expanded(child: WorkspaceEditor()),
             ],
           );
         },

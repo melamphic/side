@@ -22,8 +22,6 @@ class WorkspaceConfig {
     this.maxTabs = 10,
     this.activityBarWidth = 60.0,
     this.sidebarWidth = 256.0,
-    this.maxVerticalSplits = 2,
-    this.emptyPaneBuilder,
     this.collapsibleSidebar = false,
   });
 
@@ -60,18 +58,6 @@ class WorkspaceConfig {
   ///
   /// Contains the hierarchical navigation for the active activity.
   final double sidebarWidth;
-
-  /// Maximum number of vertical splits allowed in the editor
-  ///
-  /// Limits how many times the editor can be split vertically.
-  /// 1 = no splits, 2 = one split (two panes), 3 = two splits (three panes).
-  final int maxVerticalSplits;
-
-  /// Optional builder for custom empty pane content
-  ///
-  /// If provided, this widget is shown when a pane has no open tabs.
-  /// If null, a default placeholder is displayed.
-  final Widget Function(BuildContext context, int paneIndex)? emptyPaneBuilder;
 
   /// When true, the sidebar collapses to zero width whenever the cursor
   /// leaves the activity bar + sidebar region, and animates back open on
@@ -121,94 +107,4 @@ class ActivityBarItem {
   /// The builder is passed the active state boolean.
   final Widget Function(BuildContext context, {required bool isActive})?
   itemContentBuilder;
-}
-
-/// Configuration for split view behavior
-///
-/// Defines how the editor area can be split vertically to show
-/// multiple content areas simultaneously.
-enum SplitOrientation {
-  /// Split the editor vertically (side by side)
-  vertical,
-
-  /// Future: Split horizontally (top and bottom)
-  /// Currently not implemented but reserved for future use.
-  horizontal,
-}
-
-/// Represents the split state of the editor area
-///
-/// Tracks which tabs are displayed in which split pane and
-/// how the editor area is divided.
-class SplitConfiguration {
-  /// Creates a [SplitConfiguration]
-  const SplitConfiguration({
-    this.splitCount = 1,
-    this.orientation = SplitOrientation.vertical,
-    this.splitRatios = const [1.0],
-    this.activePane = 0,
-  });
-
-  /// Creates a [SplitConfiguration] instance from a JSON map
-  factory SplitConfiguration.fromJson(Map<String, dynamic> json) {
-    return SplitConfiguration(
-      splitCount: json['splitCount'] as int? ?? 1,
-      orientation: SplitOrientation.values.firstWhere(
-        (e) => e.toString() == (json['orientation'] as String),
-        orElse: () => SplitOrientation.vertical,
-      ),
-      splitRatios:
-          (json['splitRatios'] as List<dynamic>?)
-              ?.map((e) => (e as num).toDouble())
-              .toList() ??
-          const [1.0],
-      activePane: json['activePane'] as int? ?? 0,
-    );
-  }
-
-  /// Number of split panes currently active
-  ///
-  /// 1 = no split, 2 = one split (two panes), etc.
-  final int splitCount;
-
-  /// How the editor is split
-  ///
-  /// Currently only vertical splitting is supported.
-  final SplitOrientation orientation;
-
-  /// Size ratios for each split pane
-  ///
-  /// Values should sum to 1.0. Each value represents the
-  /// proportional width of that pane.
-  final List<double> splitRatios;
-
-  /// Index of the currently focused pane
-  ///
-  /// Used for tab operations and keyboard navigation.
-  final int activePane;
-
-  /// Converts the [SplitConfiguration] instance to a JSON map
-  Map<String, dynamic> toJson() {
-    return {
-      'splitCount': splitCount,
-      'orientation': orientation.toString(),
-      'splitRatios': splitRatios,
-      'activePane': activePane,
-    };
-  }
-
-  /// Creates a copy with modified values
-  SplitConfiguration copyWith({
-    int? splitCount,
-    SplitOrientation? orientation,
-    List<double>? splitRatios,
-    int? activePane,
-  }) {
-    return SplitConfiguration(
-      splitCount: splitCount ?? this.splitCount,
-      orientation: orientation ?? this.orientation,
-      splitRatios: splitRatios ?? this.splitRatios,
-      activePane: activePane ?? this.activePane,
-    );
-  }
 }

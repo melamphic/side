@@ -6,39 +6,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:side/side.dart';
 
-/// Tab bar widget for a specific split pane
+/// Tab bar widget for the editor
 ///
-/// Shows tabs for the specified pane with proper active state and close buttons.
-/// Supports drag-and-drop for tab reordering (future enhancement).
+/// Shows tabs with active state and close buttons. Supports drag-and-drop
+/// reordering.
 class WorkspaceTabBar extends StatelessWidget {
   /// Creates a [WorkspaceTabBar]
   const WorkspaceTabBar({
-    required this.paneIndex,
     required this.tabs,
     required this.activeTab,
-    this.canSplit = false,
-    this.canClose = false,
     super.key,
   });
 
-  /// Index of the split pane this tab bar represents
-  final int paneIndex;
-
-  /// Tabs to display in this pane
+  /// Tabs to display
   final List<TabData> tabs;
 
-  /// Currently active tab in this pane
+  /// Currently active tab
   final TabData? activeTab;
-
-  /// Whether the editor can be split further
-  final bool canSplit;
-
-  /// Whether this split pane can be closed
-  final bool canClose;
 
   @override
   Widget build(BuildContext context) {
-    if (tabs.isEmpty && !canClose && !canSplit) {
+    if (tabs.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -51,60 +39,34 @@ class WorkspaceTabBar extends StatelessWidget {
           bottom: BorderSide(color: SalviaColors.hairline),
         ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Stack(
-              alignment: Alignment.centerRight,
-              children: [
-                Align(
-                  alignment: Alignment.bottomLeft,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (var i = 0; i < tabs.length; i++)
-                          Padding(
-                            padding: EdgeInsets.only(
-                              left: i == 0 ? 0 : 4,
-                              top: 16,
-                            ),
-                            child: _DocumentTabChip(
-                              tab: tabs[i],
-                              isActive: tabs[i].id == activeTab?.id,
-                              paneIndex: paneIndex,
-                              index: i,
-                            ),
-                          ),
-                      ],
-                    ),
+      child: Align(
+        alignment: Alignment.bottomLeft,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var i = 0; i < tabs.length; i++)
+                Padding(
+                  padding: EdgeInsets.only(left: i == 0 ? 0 : 4, top: 16),
+                  child: _DocumentTabChip(
+                    tab: tabs[i],
+                    isActive: tabs[i].id == activeTab?.id,
+                    index: i,
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
-          if (canSplit || canClose)
-            _SplitControls(
-              paneIndex: paneIndex,
-              canSplit: canSplit,
-              canClose: canClose,
-            ),
-        ],
+        ),
       ),
     );
   }
 }
 
 class _TabDragData {
-  const _TabDragData({
-    required this.tabId,
-    required this.paneIndex,
-    required this.index,
-  });
+  const _TabDragData({required this.tabId, required this.index});
 
   final String tabId;
-  final int paneIndex;
   final int index;
 }
 
@@ -112,13 +74,11 @@ class _DocumentTabChip extends StatefulWidget {
   const _DocumentTabChip({
     required this.tab,
     required this.isActive,
-    required this.paneIndex,
     required this.index,
   });
 
   final TabData tab;
   final bool isActive;
-  final int paneIndex;
   final int index;
 
   @override
@@ -133,31 +93,13 @@ class _DocumentTabChipState extends State<_DocumentTabChip> {
     return DragTarget<_TabDragData>(
       onWillAcceptWithDetails: (details) => details.data.tabId != widget.tab.id,
       onAcceptWithDetails: (details) {
-        final data = details.data;
-        if (data.paneIndex == widget.paneIndex) {
-          context.read<WorkspaceBloc>().add(
-            ReorderTab(
-              paneIndex: widget.paneIndex,
-              oldIndex: data.index,
-              newIndex: widget.index,
-            ),
-          );
-        } else {
-          context.read<WorkspaceBloc>().add(
-            MoveTabToPane(
-              tabId: data.tabId,
-              targetPaneIndex: widget.paneIndex,
-            ),
-          );
-        }
+        context.read<WorkspaceBloc>().add(
+          ReorderTab(oldIndex: details.data.index, newIndex: widget.index),
+        );
       },
       builder: (context, candidateData, rejectedData) {
         return Draggable<_TabDragData>(
-          data: _TabDragData(
-            tabId: widget.tab.id,
-            paneIndex: widget.paneIndex,
-            index: widget.index,
-          ),
+          data: _TabDragData(tabId: widget.tab.id, index: widget.index),
           feedback: Material(
             elevation: 4,
             color: Colors.transparent,
@@ -184,9 +126,7 @@ class _DocumentTabChipState extends State<_DocumentTabChip> {
           topRight: Radius.circular(SalviaRadius.md),
         ),
         onTap: () {
-          context.read<WorkspaceBloc>().add(
-            SwitchTab(tabId: widget.tab.id, paneIndex: widget.paneIndex),
-          );
+          context.read<WorkspaceBloc>().add(SwitchTab(tabId: widget.tab.id));
         },
         onSecondaryTapUp: (details) async {
           await _showContextMenu(context, details.globalPosition);
@@ -289,74 +229,15 @@ class _DocumentTabChipState extends State<_DocumentTabChip> {
         ),
         PopupMenuItem<String>(
           value: 'close_others',
-          onTap: () => bloc.add(
-            CloseOthers(tabId: widget.tab.id, paneIndex: widget.paneIndex),
-          ),
+          onTap: () => bloc.add(CloseOthers(tabId: widget.tab.id)),
           child: const Text('Close Others'),
         ),
         const PopupMenuDivider(),
         PopupMenuItem<String>(
           value: 'close_all',
-          onTap: () => bloc.add(CloseAll(widget.paneIndex)),
+          onTap: () => bloc.add(const CloseAll()),
           child: const Text('Close All'),
         ),
-      ],
-    );
-  }
-}
-
-/// Controls for split pane operations
-///
-/// Provides buttons for splitting, closing splits, and other pane operations.
-class _SplitControls extends StatelessWidget {
-  const _SplitControls({
-    required this.paneIndex,
-    required this.canSplit,
-    required this.canClose,
-  });
-
-  final int paneIndex;
-  final bool canSplit;
-  final bool canClose;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (canSplit)
-          Tooltip(
-            message: 'Split Editor Right',
-            child: IconButton(
-              icon: const Icon(
-                Icons.call_split,
-                size: 16,
-                color: SalviaColors.inkMuted,
-              ),
-              onPressed: () {
-                context.read<WorkspaceBloc>().add(const SplitView());
-              },
-              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-              padding: const EdgeInsets.all(4),
-            ),
-          ),
-        if (canClose)
-          Tooltip(
-            message: 'Close Split',
-            child: IconButton(
-              icon: const Icon(
-                Icons.close,
-                size: 16,
-                color: SalviaColors.inkMuted,
-              ),
-              onPressed: () {
-                context.read<WorkspaceBloc>().add(CloseSplit(paneIndex));
-              },
-              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-              padding: const EdgeInsets.all(4),
-            ),
-          ),
-        const SizedBox(width: 4),
       ],
     );
   }

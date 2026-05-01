@@ -20,7 +20,6 @@ class OpenTab extends WorkspaceEvent {
     required this.title,
     this.icon,
     this.pageArgs,
-    this.paneIndex,
   });
 
   /// Unique identifier for the page type
@@ -41,28 +40,8 @@ class OpenTab extends WorkspaceEvent {
   /// Useful for parameterized pages (e.g., user profile with user ID).
   final Map<String, dynamic>? pageArgs;
 
-  /// Optional index of the split pane where this tab should be opened
-  ///
-  /// If null, opens in the currently active pane.
-  /// 0 = first pane (left), 1 = second pane (right), etc.
-  final int? paneIndex;
-
   @override
-  List<Object?> get props => [pageId, title, icon, pageArgs, paneIndex];
-}
-
-/// Event to set the active pane index
-///
-/// Used when a user clicks on a pane to focus it.
-class SetActivePane extends WorkspaceEvent {
-  /// Creates a [SetActivePane] event
-  const SetActivePane(this.paneIndex);
-
-  /// Index of the pane to activate
-  final int paneIndex;
-
-  @override
-  List<Object> get props => [paneIndex];
+  List<Object?> get props => [pageId, title, icon, pageArgs];
 }
 
 /// Event to close a specific tab
@@ -86,18 +65,13 @@ class CloseTab extends WorkspaceEvent {
 /// Changes the active tab without opening or closing any tabs.
 class SwitchTab extends WorkspaceEvent {
   /// Creates a [SwitchTab] event
-  const SwitchTab({required this.tabId, this.paneIndex});
+  const SwitchTab({required this.tabId});
 
   /// Unique identifier of the tab to focus
   final String tabId;
 
-  /// Optional pane index to focus along with the tab
-  ///
-  /// If not provided, focuses the pane containing the tab.
-  final int? paneIndex;
-
   @override
-  List<Object?> get props => [tabId, paneIndex];
+  List<Object?> get props => [tabId];
 }
 
 /// Event to mark a tab as having unsaved changes
@@ -149,48 +123,6 @@ class ToggleSidebarGroup extends WorkspaceEvent {
   List<Object> get props => [groupId];
 }
 
-/// Event to split the editor vertically
-///
-/// Creates a new pane for displaying additional tabs side by side.
-class SplitView extends WorkspaceEvent {
-  /// Creates a [SplitView] event
-  const SplitView({this.orientation = SplitOrientation.vertical});
-
-  /// How to split the editor (currently only vertical supported)
-  final SplitOrientation orientation;
-
-  @override
-  List<Object> get props => [orientation];
-}
-
-/// Event to close a split pane
-///
-/// Removes the pane and moves its tabs to the remaining pane.
-class CloseSplit extends WorkspaceEvent {
-  /// Creates a [CloseSplit] event
-  const CloseSplit(this.paneIndex);
-
-  /// Index of the pane to close (0-based)
-  final int paneIndex;
-
-  @override
-  List<Object> get props => [paneIndex];
-}
-
-/// Event to resize split panes
-///
-/// Adjusts the width ratios of the split panes.
-class ResizeSplit extends WorkspaceEvent {
-  /// Creates a [ResizeSplit] event
-  const ResizeSplit(this.splitRatios);
-
-  /// New size ratios for each pane (should sum to 1.0)
-  final List<double> splitRatios;
-
-  @override
-  List<Object> get props => [splitRatios];
-}
-
 /// Event to resize the sidebar
 ///
 /// Updates the width of the sidebar.
@@ -205,17 +137,10 @@ class ResizeSidebar extends WorkspaceEvent {
   List<Object> get props => [width];
 }
 
-/// Event to reorder a tab within the same pane
+/// Event to reorder a tab
 class ReorderTab extends WorkspaceEvent {
   /// Creates a [ReorderTab] event
-  const ReorderTab({
-    required this.paneIndex,
-    required this.oldIndex,
-    required this.newIndex,
-  });
-
-  /// Index of the pane containing the tab
-  final int paneIndex;
+  const ReorderTab({required this.oldIndex, required this.newIndex});
 
   /// Original index of the tab
   final int oldIndex;
@@ -224,53 +149,26 @@ class ReorderTab extends WorkspaceEvent {
   final int newIndex;
 
   @override
-  List<Object> get props => [paneIndex, oldIndex, newIndex];
+  List<Object> get props => [oldIndex, newIndex];
 }
 
-/// Event to move a tab to a different pane
-class MoveTabToPane extends WorkspaceEvent {
-  /// Creates a [MoveTabToPane] event
-  const MoveTabToPane({
-    required this.tabId,
-    required this.targetPaneIndex,
-  });
-
-  /// ID of the tab to move
-  final String tabId;
-
-  /// Index of the destination pane
-  final int targetPaneIndex;
-
-  @override
-  List<Object> get props => [tabId, targetPaneIndex];
-}
-
-/// Event to close all other tabs in a pane except the specified one
+/// Event to close all other tabs except the specified one
 class CloseOthers extends WorkspaceEvent {
   /// Creates a [CloseOthers] event
-  const CloseOthers({
-    required this.tabId,
-    required this.paneIndex,
-  });
+  const CloseOthers({required this.tabId});
 
   /// ID of the tab to keep open
   final String tabId;
 
-  /// Index of the pane
-  final int paneIndex;
-
   @override
-  List<Object> get props => [tabId, paneIndex];
+  List<Object> get props => [tabId];
 }
 
-/// Event to close all tabs in a pane
+/// Event to close all tabs
 class CloseAll extends WorkspaceEvent {
   /// Creates a [CloseAll] event
-  const CloseAll(this.paneIndex);
-
-  /// Index of the pane to clear
-  final int paneIndex;
+  const CloseAll();
 
   @override
-  List<Object> get props => [paneIndex];
+  List<Object> get props => const [];
 }
